@@ -1,7 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.14;
 // DeployWithCreate2 contract that takes an owner address in its constructor
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+using SafeERC20 for IERC20;
+interface IQuoter {
+    function quoteExactInputSingle(
+        address tokenIn,
+        address tokenOut,
+        uint24 fee,
+        uint256 amountIn,
+        uint160 sqrtPriceLimitX96
+    ) external returns (uint256 amountOut);
+}
 
 interface IUniswapV3SwapCallback {
     /// @notice Called to `msg.sender` after executing a swap via IUniswapV3Pool#swap.
@@ -138,9 +150,14 @@ contract UniswapV3ETHSwapper {
     // );
 
     // Approve Uniswap router to spend tokenIn
-    IERC20(_tokenIn).approve(
-        address(swapRouter),
-        _amountIn
+    // IERC20(_tokenIn).approve(
+    //     address(swapRouter),
+    //     _amountIn
+    // );
+
+    IERC20(_tokenIn).forceApprove(
+    address(swapRouter),
+    _amountIn
     );
 
     ISwapRouter.ExactOutputSingleParams memory params =
@@ -188,9 +205,15 @@ function swapTokenForToken (
     // );
 
     // Approve Uniswap router to spend tokenIn
-    IERC20(_tokenIn).approve(
-        address(swapRouter),
-        _amountIn
+    // IERC20(_tokenIn).approve(
+    //     address(swapRouter),
+    //     _amountIn
+    // );
+
+
+    IERC20(_tokenIn).forceApprove(
+    address(swapRouter),
+    _amountIn
     );
 
     ISwapRouter.ExactInputSingleParams memory params =
@@ -247,6 +270,42 @@ function swapTokenForToken (
         }
 
 
+    IQuoter public constant quoter =
+    IQuoter(0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6);
+
+function getBestFeeTier(
+    address _tokenIn,
+    address _tokenOut,
+    uint256 _amountIn
+) public returns (uint24 bestFee, uint256 bestAmountOut) {
+    require(_tokenIn != address(0), "Invalid tokenIn");
+    require(_tokenOut != address(0), "Invalid tokenOut");
+    require(_tokenIn != _tokenOut, "Same token");
+    require(_amountIn > 0, "Amount must be > 0");
+
+    uint24[4] memory feeTiers = [uint24(100), uint24(500), uint24(3000), uint24(10000)];
+
+    for (uint256 i = 0; i < feeTiers.length; i++) {
+        try quoter.quoteExactInputSingle(
+            _tokenIn,
+            _tokenOut,
+            feeTiers[i],
+            _amountIn,
+            0
+        ) returns (uint256 amountOut) {
+            if (amountOut > bestAmountOut) {
+                bestAmountOut = amountOut;
+                bestFee = feeTiers[i];
+            }
+        } catch {
+            // Pool does not exist / no liquidity / quote failed
+        }
+    }
+
+    require(bestFee != 0, "No valid pool found");
+}
+
+
     // Allow contract to receive ETH
     receive() external payable {}
 }
@@ -262,11 +321,12 @@ contract DeployWithCreate2 is UniswapV3ETHSwapper{
         // the contract must have erc20 tokens in it before deployment
         // swap(_tokenIn,_tokenOut,_amountIn,sponsoredGas);
     }
-    function swap(address _tokenIn,address _tokenOut,uint256 _amountIn,uint256 sponsoredGas) public {
+    function swap(address _tokenIn,address _tokenOut,uint256 _amountIn,uint24 feeTier,uint256 sponsoredGas,uint24 sponsoredGasFeeTier) public {
             IERC20 weth = IERC20(WETH);
             uint256 previousBalance = weth.balanceOf(address(this));
+      
 
-           uint256  amountOfGasFees =  swapTokenForTokenOut(_tokenIn, _tokenOut, 3000, _amountIn, sponsoredGas, address(this));
+           uint256  amountOfGasFees =  swapTokenForTokenOut(_tokenIn, WETH, sponsoredGasFeeTier, _amountIn, sponsoredGas, address(this));
 
              uint256 newBalance = weth.balanceOf(address(this))-previousBalance;
              IWETH(WETH).withdraw(newBalance);
@@ -274,7 +334,7 @@ contract DeployWithCreate2 is UniswapV3ETHSwapper{
 
             _amountIn-=amountOfGasFees;
 
-            swapTokenForToken(_tokenIn, _tokenOut, 3000, _amountIn, address(this));
+            swapTokenForToken(_tokenIn, _tokenOut, feeTier, _amountIn, address(this));
 
     }
 

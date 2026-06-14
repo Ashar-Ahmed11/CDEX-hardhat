@@ -8,7 +8,7 @@ async function main() {
 
     const WETH_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
     const DAI_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-    const RNDR_ADDRESS = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
+    const RNDR_ADDRESS = "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9";
 
     const TEN_ETH = ethers.parseEther("10");
 
@@ -169,8 +169,10 @@ console.log("Best Fee:", bestFee);
     await swapper.getBestFeeTier.staticCall(
         DAI_ADDRESS,
         RNDR_ADDRESS,
-    parseUnits("10", daidecimals)
+    parseUnits("10", daidecimals),
+ 
   );
+  
 
 console.log("Best Fee:", swapFee);
 
@@ -310,6 +312,110 @@ console.log("Best Fee:", gasSponserFee);
             rndrDecimals
         )
     );
+
+
+    // =====================================================
+// 13. Execute reverse swap RNDR -> DAI
+// =====================================================
+
+console.log("\n\n========== REVERSE SWAP: RNDR -> DAI ==========");
+
+const rndrBalanceBeforeReverse = await rndr.balanceOf(computedAddress);
+const daiBalanceBeforeReverse = await dai.balanceOf(computedAddress);
+const wethBalanceBeforeReverse = await weth.balanceOf(computedAddress);
+
+console.log("\n========== BEFORE REVERSE ==========");
+console.log(
+    "Contract RNDR:",
+    ethers.formatUnits(rndrBalanceBeforeReverse, rndrDecimals)
+);
+console.log(
+    "Contract DAI:",
+    ethers.formatUnits(daiBalanceBeforeReverse, daidecimals)
+);
+console.log(
+    "Contract WETH:",
+    ethers.formatEther(wethBalanceBeforeReverse)
+);
+
+// Best fee for RNDR -> DAI
+const [reverseSwapFee] =
+    await swapper.getBestFeeTier.staticCall(
+        RNDR_ADDRESS,
+        DAI_ADDRESS,
+        rndrBalanceBeforeReverse,
+          {
+            gasLimit: 16_000_000
+        }
+    );
+
+console.log("Reverse Swap Fee RNDR -> DAI:", reverseSwapFee);
+
+// Fee tier for gas sponsor swap WETH -> RNDR
+const [reverseGasSponsorFee] =
+    await swapper.getBestFeeTier.staticCall(
+        WETH_ADDRESS,
+        RNDR_ADDRESS,
+        ethers.parseEther("10")
+    );
+
+console.log("Reverse Gas Sponsor Fee WETH -> RNDR:", reverseGasSponsorFee);
+
+// Estimate gas for RNDR -> DAI
+const reverseEstimatedGas =
+    await create2Contract.getFunction("swap").estimateGas(
+        RNDR_ADDRESS,
+        DAI_ADDRESS,
+        rndrBalanceBeforeReverse,
+        reverseSwapFee,
+        ethers.parseEther("1"),
+        reverseGasSponsorFee
+    );
+
+console.log("Reverse Estimated Gas:", reverseEstimatedGas.toString());
+
+const reverseSponsoredGasAmount = reverseEstimatedGas;
+
+// Execute reverse swap
+const reverseTx = await create2Contract.swap(
+    RNDR_ADDRESS,
+    DAI_ADDRESS,
+    rndrBalanceBeforeReverse,
+    reverseSwapFee,
+    reverseSponsoredGasAmount,
+    reverseGasSponsorFee
+);
+
+await reverseTx.wait();
+
+console.log("\nReverse swap RNDR -> DAI executed");
+
+// =====================================================
+// 14. Balances AFTER reverse swap
+// =====================================================
+
+const rndrBalanceAfterReverse = await rndr.balanceOf(computedAddress);
+const daiBalanceAfterReverse = await dai.balanceOf(computedAddress);
+const wethBalanceAfterReverse = await weth.balanceOf(computedAddress);
+const signerEthAfterReverse = await ethers.provider.getBalance(signer.address);
+
+console.log("\n========== AFTER REVERSE ==========");
+console.log(
+    "Signer ETH:",
+    ethers.formatEther(signerEthAfterReverse)
+);
+console.log(
+    "Contract WETH:",
+    ethers.formatEther(wethBalanceAfterReverse)
+);
+console.log(
+    "Contract DAI:",
+    ethers.formatUnits(daiBalanceAfterReverse, daidecimals)
+);
+console.log(
+    "Contract RNDR:",
+    ethers.formatUnits(rndrBalanceAfterReverse, rndrDecimals)
+);
 }
 
 main().catch((error) => {
