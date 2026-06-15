@@ -1,7 +1,7 @@
 npx hardhat node --fork https://eth-mainnet.g.alchemy.com/v2/3bP_dCBvn8Y50_cGNX8k26ygTP-P_QSx
 npx hardhat node --fork https://purple-skilled-breeze.quiknode.pro/f77bc85bbf77871c8bbd9561d9c6c4c355c1fd8e/   
 npx hardhat node --fork https://solitary-young-dew.ethereum-mainnet.quiknode.pro/ec71847cf12fa6ceb8d11fc76ad189b20f2f4685/ 
-
+npx hardhat node --fork https://eth-mainnet.g.alchemy.com/v2/3bP_dCBvn8Y50_cGNX8k26ygTP-P_QSx
 
 npx hardhat compile
 npx hardhat clean

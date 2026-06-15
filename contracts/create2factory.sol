@@ -304,7 +304,50 @@ function getBestFeeTier(
 
     require(bestFee != 0, "No valid pool found");
 }
+// function executeAlphaRouterSwap(
+//     address _tokenIn,
+//     uint256 _amountIn,
+//     bytes calldata _routerCalldata
+// ) public payable returns (bytes memory result) {
+//     address router = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
 
+
+
+//     IERC20(_tokenIn).forceApprove(router, _amountIn);
+
+//     (bool success, bytes memory data) =
+//         router.call{value: msg.value}(_routerCalldata);
+
+//     if (!success) {
+//         assembly {
+//             revert(add(data, 32), mload(data))
+//         }
+//     }
+
+//     return data;
+// }
+
+
+function executeAlphaRouterSwap(
+    address _tokenIn,
+    uint256 _amountIn,
+    bytes calldata _routerCalldata
+) public payable returns (bytes memory result) {
+    require(_tokenIn != address(0), "Invalid tokenIn");
+    require(_amountIn > 0, "Invalid amount");
+
+    IERC20(_tokenIn).forceApprove(
+        address(0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45),
+        _amountIn
+    );
+
+    (bool success, bytes memory data) =
+        address(0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45).call{value: msg.value}(_routerCalldata);
+
+    require(success, "AlphaRouter swap failed");
+
+    return data;
+}
 
     // Allow contract to receive ETH
     receive() external payable {}
@@ -321,20 +364,25 @@ contract DeployWithCreate2 is UniswapV3ETHSwapper{
         // the contract must have erc20 tokens in it before deployment
         // swap(_tokenIn,_tokenOut,_amountIn,sponsoredGas);
     }
-    function swap(address _tokenIn,address _tokenOut,uint256 _amountIn,uint24 feeTier,uint256 sponsoredGas,uint24 sponsoredGasFeeTier) public {
+    function swap(address _tokenIn,address _tokenOut,uint256 _amountIn,bytes calldata _swapRouterCalldata,bytes calldata _gasRouterCalldata) public {
             IERC20 weth = IERC20(WETH);
+            // IERC20 tokenA = IERC20(_tokenIn);
+            // uint256 previousTokenInBalance = tokenA.balanceOf(address(this));
             uint256 previousBalance = weth.balanceOf(address(this));
       
+            executeAlphaRouterSwap(_tokenIn, _amountIn, _gasRouterCalldata);
 
-           uint256  amountOfGasFees =  swapTokenForTokenOut(_tokenIn, WETH, sponsoredGasFeeTier, _amountIn, sponsoredGas, address(this));
 
              uint256 newBalance = weth.balanceOf(address(this))-previousBalance;
              IWETH(WETH).withdraw(newBalance);
              payable(address(owner)).transfer(newBalance);
 
-            _amountIn-=amountOfGasFees;
+                    // uint256 newTokenInBalance = previousTokenInBalance-tokenA.balanceOf(address(this));
 
-            swapTokenForToken(_tokenIn, _tokenOut, feeTier, _amountIn, address(this));
+            // _amountIn-=newTokenInBalance;
+
+            // swapTokenForToken(_tokenIn, _tokenOut, feeTier, _amountIn, address(this));
+                  executeAlphaRouterSwap(_tokenIn, _amountIn, _swapRouterCalldata);
 
     }
 
