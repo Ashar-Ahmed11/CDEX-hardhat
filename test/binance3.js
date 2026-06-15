@@ -9,7 +9,8 @@ async function main() {
 
     const WETH_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
     const DAI_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-    const RNDR_ADDRESS = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
+    const RNDR_ADDRESS = "0x514910771AF9Ca656af840dff83E8264EcF986CA";
+        const BTC_ADDRESS = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
 
     const TEN_ETH = ethers.parseEther("10");
 
@@ -178,22 +179,29 @@ async function main() {
     // 9. Estimate gas for swap()
     // =====================================================
 
-    // const initiateSwap=async(_tokenIn, _tokenOut,_amountIn)=>{
-
-    // }
-       const rndr = await ethers.getContractAt(
+    const initiateSwap=async(_tokenIn, _tokenOut,_amountIn)=>{
+  const rndr = await ethers.getContractAt(
         "ERC20",
-        RNDR_ADDRESS
+        _tokenOut
     );
 
     const rndrDecimalsRaw = await rndr.decimals();
     const rndrDecimals = Number(rndrDecimalsRaw);
 
 
+           const tokenA = await ethers.getContractAt(
+        "ERC20",
+        _tokenIn
+    );
+
+    const tokenADecimalsRaw = await tokenA.decimals();
+    const tokenADecimals = Number(tokenADecimalsRaw);
+
+
     
     const gasSponserSwapCallData = await SwapRouterOutput(
-        DAI_ADDRESS,
-        daidecimals,
+        _tokenIn,
+        tokenADecimals,
       WETH_ADDRESS,
       wethdecimals,
       parseEther("1"),
@@ -201,20 +209,20 @@ async function main() {
     );
 
       const swapRouterCalldata = await SwapRouter(
-          DAI_ADDRESS,
-          daidecimals,
-          RNDR_ADDRESS,
+          _tokenIn,
+          tokenADecimals,
+          _tokenOut,
           rndrDecimals,
-    daiBalance * 80n / 100n,
+    _amountIn * 80n / 100n,
       computedAddress
     );
 
-console.log("gas estimation started");
+
    const estimatedGas =
     await create2Contract.getFunction("swap").estimateGas(
-        DAI_ADDRESS,
-        RNDR_ADDRESS,
-         daiBalance,
+        _tokenIn,
+        _tokenOut,
+         _amountIn,
       swapRouterCalldata.methodParameters.calldata,
       gasSponserSwapCallData.methodParameters.calldata
     );
@@ -231,8 +239,8 @@ const gasPrice = (await ethers.provider.getFeeData()).gasPrice;
     );
 
     const gasSponsorRoute = await SwapRouterOutput(
-  DAI_ADDRESS,
-  daidecimals,
+  _tokenIn,
+  tokenADecimals,
   WETH_ADDRESS,
   wethdecimals,
   sponsoredGasAmount,
@@ -245,8 +253,8 @@ const gasPrice = (await ethers.provider.getFeeData()).gasPrice;
 console.log(sponsoredGasInDai)
     
  const gasSponserSwapCallDataLive = await SwapRouterOutput(
-        DAI_ADDRESS,
-        daidecimals,
+        _tokenIn,
+        tokenADecimals,
       WETH_ADDRESS,
       wethdecimals,
       sponsoredGasAmount,
@@ -254,33 +262,52 @@ console.log(sponsoredGasInDai)
     );
 
       const swapRouterCalldataLive = await SwapRouter(
-          DAI_ADDRESS,
-          daidecimals,
-          RNDR_ADDRESS,
+          _tokenIn,
+          tokenADecimals,
+          _tokenOut,
           rndrDecimals,
-    daiBalance-sponsoredGasInDai,
+    _amountIn - sponsoredGasInDai,
       computedAddress
     );
 
 
    const create2Swap =
     await create2Contract.swap(
-        DAI_ADDRESS,
-        RNDR_ADDRESS,
-         daiBalance,
+        _tokenIn,
+        _tokenOut,
+         _amountIn,
       swapRouterCalldataLive.methodParameters.calldata,
       gasSponserSwapCallDataLive.methodParameters.calldata
     );
 
     create2Swap.wait();
+    }
+     
+    await initiateSwap(DAI_ADDRESS, RNDR_ADDRESS, daiBalance);
     
     console.log("Swap executed via CREATE2 contract");
 
+    const rndr = await ethers.getContractAt(
+        "ERC20",
+        RNDR_ADDRESS
+    );
+
+        const rndrDecimalsRaw = await rndr.decimals();
+        const rndrDecimals = Number(rndrDecimalsRaw);
     const rndrBalanceAfter = await rndr.balanceOf(computedAddress);
 
     console.log("render balance ", formatUnits(rndrBalanceAfter, rndrDecimals));
-    
 
+
+    
+    await initiateSwap(RNDR_ADDRESS, BTC_ADDRESS, rndrBalanceAfter);
+       const btc = await ethers.getContractAt(
+        "ERC20",
+        BTC_ADDRESS
+    );
+
+    const newDaiBalance = await btc.balanceOf(computedAddress);
+    console.log("BTC BALANCE ",newDaiBalance);
 
 
 //      const rndr = await ethers.getContractAt(
