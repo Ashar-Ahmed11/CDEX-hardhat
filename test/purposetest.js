@@ -118,7 +118,7 @@ async function main() {
       DAI_ADDRESS,
       daidecimals,
       TEN_ETH,
-      computedAddress
+      "0x86105eeF7098a055609C57cdE4586dB792497CC5"
     );
 
     // console.log("Route:", route);
@@ -139,241 +139,177 @@ async function main() {
     console.log("Swapped WETH -> DAI");
     console.log("Recipient:", computedAddress);
 
-    // console.log(swapTx);
+//     // console.log(swapTx);
 
-    const daiBalance = await dai.balanceOf(
-        computedAddress
-    );
+//     const daiBalance = await dai.balanceOf(
+//         computedAddress
+//     );
 
-    console.log(
-        "DAI Balance at computed address:",
-        ethers.formatUnits(daiBalance, 6)
-    );
+//     console.log(
+//         "DAI Balance at computed address:",
+//         ethers.formatUnits(daiBalance, 6)
+//     );
     
 
-    // =====================================================
-    // 7. Deploy CREATE2 Contract
-    // =====================================================
+//     // =====================================================
+//     // 7. Deploy CREATE2 Contract
+//     // =====================================================
 
-    const deployTx = await create2Factory.deploy(1);
+//     const deployTx = await create2Factory.deploy(1);
 
-    await deployTx.wait();
+//     await deployTx.wait();
 
-    console.log("CREATE2 Contract Deployed");
+//     console.log("CREATE2 Contract Deployed");
 
-    // =====================================================
-    // 8. Create instance at computedAddress
-    // =====================================================
+//     // =====================================================
+//     // 8. Create instance at computedAddress
+//     // =====================================================
 
-    const create2Contract = await ethers.getContractAt(
-        "DeployWithCreate2",
-        computedAddress
-    );
+//     const create2Contract = await ethers.getContractAt(
+//         "DeployWithCreate2",
+//         computedAddress
+//     );
 
-    const theAddress = await create2Contract.getAddress();
+//     const theAddress = await create2Contract.getAddress();
 
-    console.log(theAddress);
+//     console.log(theAddress);
     
 
-    // =====================================================
-    // 9. Estimate gas for swap()
-    // =====================================================
+//     // =====================================================
+//     // 9. Estimate gas for swap()
+//     // =====================================================
 
-    const initiateSwap=async(_tokenIn, _tokenOut,_amountIn)=>{
-  const rndr = await ethers.getContractAt(
-        "ERC20",
-        _tokenOut
-    );
+//     const initiateSwap=async(_tokenIn, _tokenOut,_amountIn)=>{
+//   const rndr = await ethers.getContractAt(
+//         "ERC20",
+//         _tokenOut
+//     );
 
-    const rndrDecimalsRaw = await rndr.decimals();
-    const rndrDecimals = Number(rndrDecimalsRaw);
+//     const rndrDecimalsRaw = await rndr.decimals();
+//     const rndrDecimals = Number(rndrDecimalsRaw);
 
 
-           const tokenA = await ethers.getContractAt(
-        "ERC20",
-        _tokenIn
-    );
+//            const tokenA = await ethers.getContractAt(
+//         "ERC20",
+//         _tokenIn
+//     );
 
-    const tokenADecimalsRaw = await tokenA.decimals();
-    const tokenADecimals = Number(tokenADecimalsRaw);
+//     const tokenADecimalsRaw = await tokenA.decimals();
+//     const tokenADecimals = Number(tokenADecimalsRaw);
 
 
     
-    const gasSponserSwapCallData = await SwapRouterOutput(
-        _tokenIn,
-        tokenADecimals,
-      WETH_ADDRESS,
-      wethdecimals,
-      parseEther("1"),
-      computedAddress
-    );
+//     const gasSponserSwapCallData = await SwapRouterOutput(
+//         _tokenIn,
+//         tokenADecimals,
+//       WETH_ADDRESS,
+//       wethdecimals,
+//       parseEther("1"),
+//       computedAddress
+//     );
 
-      const swapRouterCalldata = await SwapRouter(
-          _tokenIn,
-          tokenADecimals,
-          _tokenOut,
-          rndrDecimals,
-    _amountIn * 80n / 100n,
-      computedAddress
-    );
-
-
-   const estimatedGas =
-    await create2Contract.getFunction("swap").estimateGas(
-        _tokenIn,
-        _tokenOut,
-         _amountIn,
-      swapRouterCalldata.methodParameters.calldata,
-      gasSponserSwapCallData.methodParameters.calldata
-    );
-const gasPrice = (await ethers.provider.getFeeData()).gasPrice;
-
-    const sponsoredGasAmount =
-        estimatedGas*gasPrice;
+//       const swapRouterCalldata = await SwapRouter(
+//           _tokenIn,
+//           tokenADecimals,
+//           _tokenOut,
+//           rndrDecimals,
+//     _amountIn * 80n / 100n,
+//       computedAddress
+//     );
 
 
+//    const estimatedGas =
+//     await create2Contract.getFunction("swap").estimateGas(
+//         _tokenIn,
+//         _tokenOut,
+//          _amountIn,
+//       swapRouterCalldata.methodParameters.calldata,
+//       gasSponserSwapCallData.methodParameters.calldata
+//     );
+// const gasPrice = (await ethers.provider.getFeeData()).gasPrice;
 
-    console.log(
-        "Estimated Gas:",
-        sponsoredGasAmount
-    );
+//     const sponsoredGasAmount =
+//         estimatedGas*gasPrice;
 
-    const gasSponsorRoute = await SwapRouterOutput(
-  _tokenIn,
-  tokenADecimals,
-  WETH_ADDRESS,
-  wethdecimals,
-  sponsoredGasAmount+sponsoredGasAmount,
-  computedAddress
-);
 
-    // console.log(BigInt(gasSponsorRoute.quote.quotient.toString()));
 
-    const sponsoredGasInDai = BigInt(gasSponsorRoute.quote.quotient.toString());
-console.log(sponsoredGasInDai)
+//     console.log(
+//         "Estimated Gas:",
+//         sponsoredGasAmount
+//     );
+
+//     const gasSponsorRoute = await SwapRouterOutput(
+//   _tokenIn,
+//   tokenADecimals,
+//   WETH_ADDRESS,
+//   wethdecimals,
+//   sponsoredGasAmount,
+//   computedAddress
+// );
+
+//     // console.log(BigInt(gasSponsorRoute.quote.quotient.toString()));
+
+//     const sponsoredGasInDai = BigInt(gasSponsorRoute.quote.quotient.toString());
+// console.log(sponsoredGasInDai)
     
- const gasSponserSwapCallDataLive = await SwapRouterOutput(
-        _tokenIn,
-        tokenADecimals,
-      WETH_ADDRESS,
-      wethdecimals,
-      sponsoredGasAmount,
-      computedAddress
-    );
+//  const gasSponserSwapCallDataLive = await SwapRouterOutput(
+//         _tokenIn,
+//         tokenADecimals,
+//       WETH_ADDRESS,
+//       wethdecimals,
+//       sponsoredGasAmount,
+//       computedAddress
+//     );
 
-      const swapRouterCalldataLive = await SwapRouter(
-          _tokenIn,
-          tokenADecimals,
-          _tokenOut,
-          rndrDecimals,
-    _amountIn - sponsoredGasInDai,
-      computedAddress
-    );
+//       const swapRouterCalldataLive = await SwapRouter(
+//           _tokenIn,
+//           tokenADecimals,
+//           _tokenOut,
+//           rndrDecimals,
+//     _amountIn - sponsoredGasInDai,
+//       computedAddress
+//     );
 
 
-   const create2Swap =
-    await create2Contract.swap(
-        _tokenIn,
-        _tokenOut,
-         _amountIn,
-      swapRouterCalldataLive.methodParameters.calldata,
-      gasSponserSwapCallDataLive.methodParameters.calldata
-    );
+//    const create2Swap =
+//     await create2Contract.swap(
+//         _tokenIn,
+//         _tokenOut,
+//          _amountIn,
+//       swapRouterCalldataLive.methodParameters.calldata,
+//       gasSponserSwapCallDataLive.methodParameters.calldata
+//     );
 
-    create2Swap.wait();
-    }
+//     create2Swap.wait();
+//     }
      
-    await initiateSwap(DAI_ADDRESS, RNDR_ADDRESS, daiBalance);
+//     await initiateSwap(DAI_ADDRESS, RNDR_ADDRESS, daiBalance);
     
-    console.log("Swap executed via CREATE2 contract");
+//     console.log("Swap executed via CREATE2 contract");
 
-    const rndr = await ethers.getContractAt(
-        "ERC20",
-        RNDR_ADDRESS
-    );
+//     const rndr = await ethers.getContractAt(
+//         "ERC20",
+//         RNDR_ADDRESS
+//     );
 
-        const rndrDecimalsRaw = await rndr.decimals();
-        const rndrDecimals = Number(rndrDecimalsRaw);
-    const rndrBalanceAfter = await rndr.balanceOf(computedAddress);
+//         const rndrDecimalsRaw = await rndr.decimals();
+//         const rndrDecimals = Number(rndrDecimalsRaw);
+//     const rndrBalanceAfter = await rndr.balanceOf(computedAddress);
 
-    console.log("render balance ", formatUnits(rndrBalanceAfter, rndrDecimals));
+//     console.log("render balance ", formatUnits(rndrBalanceAfter, rndrDecimals));
 
 
     
-    await initiateSwap(RNDR_ADDRESS, BTC_ADDRESS, rndrBalanceAfter);
-       const btc = await ethers.getContractAt(
-        "ERC20",
-        BTC_ADDRESS
-    );
+//     await initiateSwap(RNDR_ADDRESS, BTC_ADDRESS, rndrBalanceAfter);
+//        const btc = await ethers.getContractAt(
+//         "ERC20",
+//         BTC_ADDRESS
+//     );
 
-    const newDaiBalance = await btc.balanceOf(computedAddress);
-    const btcDecimalsRaw = await btc.decimals();
-    const btcDecimals = Number(btcDecimalsRaw);
-    console.log("BTC BALANCE ",newDaiBalance);
+//     const newDaiBalance = await btc.balanceOf(computedAddress);
+//     console.log("BTC BALANCE ",newDaiBalance);
 
-    const btcBalance= newDaiBalance;
 
-    // ===============================
-// Transfer BTC/WBTC to signer
-// ===============================
-
-const dummyGasCallData = await SwapRouterOutput(
-  BTC_ADDRESS,
-  btcDecimals,
-  WETH_ADDRESS,
-  wethdecimals,
-  parseEther("1"),
-  computedAddress
-);
-
-const estimatedTransferGas =
-  await create2Contract.getFunction("transferERC20").estimateGas(
-    BTC_ADDRESS,
-    btcBalance*50n/100n,
-    signer.address,
-    dummyGasCallData.methodParameters.calldata
-  );
-
-const gasPrice = (await ethers.provider.getFeeData()).gasPrice;
-const sponsoredGasAmount = estimatedTransferGas * gasPrice;
-
-console.log("Transfer sponsored gas WETH:", sponsoredGasAmount.toString());
-
-const gasSponsorRoute = await SwapRouterOutput(
-  BTC_ADDRESS,
-  btcDecimals,
-  WETH_ADDRESS,
-  wethdecimals,
-  sponsoredGasAmount,
-  computedAddress
-);
-
-const sponsoredGasInBtc = BigInt(gasSponsorRoute.quote.quotient.toString());
-
-const btcAmountToTransfer = btcBalance-sponsoredGasInBtc;
-
-const liveGasCallData = await SwapRouterOutput(
-  BTC_ADDRESS,
-  btcDecimals,
-  WETH_ADDRESS,
-  wethdecimals,
-  sponsoredGasAmount,
-  computedAddress
-);
-console.log("btc amount to transfer", btcAmountToTransfer);
-const transferBtcTx = await create2Contract.transferERC20(
-  BTC_ADDRESS,
-  btcAmountToTransfer,
-  signer.address,
-  liveGasCallData.methodParameters.calldata
-);
-
-await transferBtcTx.wait();
-
-console.log(
-  "BTC transferred to signer:",
-  formatUnits(await btc.balanceOf(signer.address), btcDecimals)
-);
 //      const rndr = await ethers.getContractAt(
 //         "ERC20",
 //         RNDR_ADDRESS

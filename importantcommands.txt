@@ -5,4 +5,4 @@ npx hardhat node --fork https://eth-mainnet.g.alchemy.com/v2/3bP_dCBvn8Y50_cGNX8
 
 npx hardhat compile
 npx hardhat clean
-npx hardhat run test/another-swap.js --network localhost
+npx hardhat run test/binance3.js --network localhost
